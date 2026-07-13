@@ -274,6 +274,26 @@ app.get("/api/fuel", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// 🎯 ADDED: UPDATE (EDIT) FUEL RECORD ROUTE
+app.put("/api/fuel/:id", async (req, res) => {
+  try {
+    const updatedFuel = await Fuel.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updatedFuel);
+  } catch (err) {
+    res.status(400).json({ message: "Fuel record update failed: " + err.message });
+  }
+});
+
+// 🎯 ADDED: DELETE FUEL RECORD ROUTE
+app.delete("/api/fuel/:id", async (req, res) => {
+  try {
+    await Fuel.findByIdAndDelete(req.params.id);
+    res.json({ message: "Fuel record deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Fuel record deletion failed: " + err.message });
+  }
+});
+
 app.get("/api/notifications/:username", async (req, res) => {
   try {
     const notes = await Notification.find({ recipient: req.params.username })

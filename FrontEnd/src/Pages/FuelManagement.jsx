@@ -12,7 +12,9 @@ import {
   PlusCircle, 
   X, 
   Loader2,
-  Store
+  Store,
+  Edit3,   
+  Trash2   
 } from "lucide-react";
 
 // --- MUI & DATE PICKER IMPORTS ---
@@ -79,6 +81,7 @@ export default function FuelManagement() {
   const [showModal, setShowModal] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null); 
 
   const themeFont = '"Inter", "Open Sans", "Segoe UI", system-ui, sans-serif';
 
@@ -107,24 +110,64 @@ export default function FuelManagement() {
     }
   };
 
+  const handleEditTrigger = (log) => {
+    setEditingId(log._id);
+    setFormData({
+      vehicleNo: log.vehicleNo || "",
+      fillingStation: log.fillingStation || "",
+      driver: log.driver || "",
+      meterReading: log.meterReading || "",
+      fuelType: log.fuelType || "Auto Diesel",
+      liters: log.liters || "",
+      costPerLiter: log.costPerLiter || "",
+      totalAmount: log.totalAmount || 0
+    });
+    setSelectedDate(dayjs(log.date));
+    setShowModal(true);
+  };
+
+  const handleDeleteLog = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this fuel record?")) return;
+    try {
+      await API.delete(`/fuel/${id}`);
+      toast.success("Fuel record removed");
+      fetchInitialData();
+    } catch (err) {
+      toast.error("Failed to delete record");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await API.post("/fuel", {
-        ...formData,
-        date: selectedDate.format('YYYY-MM-DD')
-      });
-      toast.success("Fuel record saved!");
-      setShowModal(false);
-      setFormData(initialForm);
-      setSelectedDate(dayjs());
+      if (editingId) {
+        await API.put(`/fuel/${editingId}`, {
+          ...formData,
+          date: selectedDate.format('YYYY-MM-DD')
+        });
+        toast.success("Fuel record updated!");
+      } else {
+        await API.post("/fuel", {
+          ...formData,
+          date: selectedDate.format('YYYY-MM-DD')
+        });
+        toast.success("Fuel record saved!");
+      }
+      handleCloseModal();
       fetchInitialData();
     } catch (err) { 
       toast.error("Failed to save record"); 
     } finally {
         setLoading(false);
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setFormData(initialForm);
+    setSelectedDate(dayjs());
   };
 
   if (fetching) return (
@@ -150,7 +193,7 @@ export default function FuelManagement() {
           </div>
           
           <button 
-              onClick={() => setShowModal(true)} 
+              onClick={() => { setEditingId(null); setShowModal(true); }} 
               className="bg-slate-900 text-yellow-400 h-14 px-8 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl flex items-center gap-3 hover:bg-slate-800 transition-all active:scale-95 whitespace-nowrap"
           >
             <PlusCircle size={20} /> Add Fuel Entry
@@ -168,6 +211,7 @@ export default function FuelManagement() {
                     <th className="p-6 text-[11px] font-semibold uppercase text-slate-400">Driver</th>
                     <th className="p-6 text-[11px] font-semibold uppercase text-slate-400 text-center">Liters</th>
                     <th className="p-6 text-[11px] font-semibold uppercase text-slate-400 text-right">Total (LKR)</th>
+                    <th className="p-6 text-[11px] font-semibold uppercase text-slate-400 text-center">Actions</th> 
                   </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -182,6 +226,24 @@ export default function FuelManagement() {
                       <td className="p-6 text-base font-bold text-slate-900 text-right">
                           {Number(log.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
+                      <td className="p-6 text-center">
+                        <div className="flex items-center justify-center gap-3">
+                          <button 
+                            onClick={() => handleEditTrigger(log)}
+                            className="p-2 text-slate-400 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all"
+                            title="Edit Record"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteLog(log._id)}
+                            className="p-2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all"
+                            title="Delete Record"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
                   </tr>
                   ))}
               </tbody>
@@ -194,11 +256,13 @@ export default function FuelManagement() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl p-10 relative overflow-y-auto max-h-[95vh] custom-scrollbar animate-in zoom-in-95 duration-300">
               
-              <button onClick={() => setShowModal(false)} className="absolute top-6 right-8 text-slate-400 hover:text-slate-900 transition-colors">
+              <button onClick={handleCloseModal} className="absolute top-6 right-8 text-slate-400 hover:text-slate-900 transition-colors">
                   <X size={28}/>
               </button>
 
-              <h2 className="text-2xl font-bold uppercase tracking-tight mb-1 text-slate-900">New Fuel Entry</h2>
+              <h2 className="text-2xl font-bold uppercase tracking-tight mb-1 text-slate-900">
+                {editingId ? "Edit Fuel Entry" : "New Fuel Entry"}
+              </h2>
               <p className="text-sm text-slate-500 mb-8 font-medium">Log filling station details and amounts.</p>
               
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -268,9 +332,9 @@ export default function FuelManagement() {
                 </div>
 
                 <div className="md:col-span-2 flex gap-4 pt-4">
-                  <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 border border-slate-200 rounded-xl font-bold uppercase text-[10px] tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Cancel</button>
+                  <button type="button" onClick={handleCloseModal} className="flex-1 py-4 border border-slate-200 rounded-xl font-bold uppercase text-[10px] tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Cancel</button>
                   <button type="submit" disabled={loading} className="flex-[2] py-4 bg-slate-900 text-yellow-400 rounded-xl font-bold uppercase text-[10px] tracking-widest shadow-xl hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50">
-                      {loading ? "Saving..." : "Confirm & Save Entry"}
+                      {loading ? "Saving..." : editingId ? "Update Fuel Entry" : "Confirm & Save Entry"}
                   </button>
                 </div>
               </form>

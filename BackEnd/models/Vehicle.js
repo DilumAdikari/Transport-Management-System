@@ -11,10 +11,14 @@ const vehicleSchema = new mongoose.Schema({
   fuelType: { type: String },
   yom: { type: String },
   licenseValid: { type: String },
+  emissionValid: { type: String }, // Emission date field
   pricePerKM: { type: Number, default: 0 },
   
-  // 🎯 ADDED: Manual typing text input field for Owner details
-  owner: { type: String, default: "" }
+  // 🎯 Manual typing text input field for Owner details
+  owner: { type: String, default: "" },
+
+  // 🎯 ADDED: Insurance Expiry Date Field to match the new frontend DatePicker
+  insuranceValid: { type: String, default: "" }
 }, { timestamps: true });
 
 export default mongoose.model("Vehicle", vehicleSchema);

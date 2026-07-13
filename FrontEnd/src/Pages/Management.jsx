@@ -79,6 +79,35 @@ const muiTheme = createTheme({
   },
 });
 
+// 🎯 FIXED: Strict MUI inner selectors to force text, placeholders, and labels to be bright white
+const darkDatePickerStyle = {
+  width: "100%",
+  "& .MuiOutlinedInput-root": {
+    bgcolor: "#1e293b",
+    borderRadius: "1rem",
+    border: "1px solid #334155",
+    height: "45px",
+    // 🎨 මෙන්න මේ කොටසෙන් තමයි ඇතුලේ ලියවෙන අකුරු වල පාට සුදු කරන්නේ:
+    "& input": {
+      color: "#ffffff !important",
+      fontSize: "13px",
+      fontWeight: 700,
+      WebkitTextFillColor: "#ffffff !important", // Chrome/Edge text force patch
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#475569" },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#eab308" }
+  },
+  // 🎨 මෙයින් input එකට උඩින් ඇති කුඩා labels සුදු පාට කරයි:
+  "& .MuiInputLabel-root": { 
+    color: "#94a3b8 !important",
+    fontSize: "10px",
+    fontWeight: 800,
+  },
+  "& .MuiInputLabel-root.Mui-focused": { color: "#eab308 !important" },
+  // 🎨 දකුණු පස ඇති Calendar Icon එක සුදු පාට කරයි:
+  "& .MuiSvgIcon-root": { color: "#ffffff !important" }, 
+};
+
 export default function Management({ refresh }) {
   const [drivers, setDrivers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -106,8 +135,9 @@ export default function Management({ refresh }) {
     yom: "",
     licenseValid: null,
     emissionValid: null,
+    insuranceValid: null, // 🎯 ADDED: Initialized state field
     pricePerKM: "",
-    owner: "", // 🎯 ADDED: Initialized owner state field
+    owner: "",
   });
 
   const loadData = async () => {
@@ -169,7 +199,10 @@ export default function Management({ refresh }) {
         emissionValid: vehicleData.emissionValid
           ? dayjs(vehicleData.emissionValid).format("YYYY-MM-DD")
           : null,
-        owner: vehicleData.owner, // 🎯 FIXED: Mapped explicitly into the payload
+        insuranceValid: vehicleData.insuranceValid
+          ? dayjs(vehicleData.insuranceValid).format("YYYY-MM-DD")
+          : null, // 🎯 ADDED: Added to backend payload
+        owner: vehicleData.owner,
       };
       await API.post("/vehicles", payload);
       toast.success("Unit Authorized");
@@ -186,6 +219,7 @@ export default function Management({ refresh }) {
         yom: "",
         licenseValid: null,
         emissionValid: null,
+        insuranceValid: null,
         pricePerKM: "",
         owner: "",
       });
@@ -219,7 +253,7 @@ export default function Management({ refresh }) {
     <ThemeProvider theme={muiTheme}>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <div className="p-6 space-y-10 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
-                    <header>
+          <header>
             <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tighter">
               <div className="p-2 bg-yellow-400 rounded-xl shadow-lg">
                 <Truck size={26} />
@@ -446,7 +480,6 @@ export default function Management({ refresh }) {
                   />
                 </div>
 
-                {/* 🎯 FIXED: OWNER FIELD WITH CORRECT STATE BINDING AND MUTATION LOGIC */}
                 <div className="dark-row md:col-span-2 border-slate-700/80">
                   <UserPlus size={16} className="text-slate-400" />
                   <input
@@ -459,7 +492,8 @@ export default function Management({ refresh }) {
                   />
                 </div>
 
-                <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
+                {/* 🎯 FIXED: Inside grid cols 3 layout, style patch successfully injects */}
+                <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <DatePicker
                     label="Revenue License Valid"
                     value={vehicleData.licenseValid}
@@ -470,16 +504,7 @@ export default function Management({ refresh }) {
                       textField: {
                         fullWidth: true,
                         size: "small",
-                        sx: {
-                          "& .MuiOutlinedInput-root": {
-                            bgcolor: "#1e293b",
-                            borderRadius: "1rem",
-                            color: "#fff",
-                          },
-                          "& .MuiInputLabel-root": { color: "#94a3b8" },
-                          "& .MuiInputBase-input": { color: "#ffffff" },
-                          "& .MuiSvgIcon-root": { color: "#ffffff" },
-                        },
+                        sx: darkDatePickerStyle,
                       },
                     }}
                   />
@@ -493,16 +518,21 @@ export default function Management({ refresh }) {
                       textField: {
                         fullWidth: true,
                         size: "small",
-                        sx: {
-                          "& .MuiOutlinedInput-root": {
-                            bgcolor: "#1e293b",
-                            borderRadius: "1rem",
-                            color: "#fff",
-                          },
-                          "& .MuiInputLabel-root": { color: "#94a3b8" },
-                          "& .MuiInputBase-input": { color: "#ffffff" },
-                          "& .MuiSvgIcon-root": { color: "#ffffff" },
-                        },
+                        sx: darkDatePickerStyle,
+                      },
+                    }}
+                  />
+                  <DatePicker
+                    label="Insurance Expiry"
+                    value={vehicleData.insuranceValid}
+                    onChange={(v) =>
+                      setVehicleData({ ...vehicleData, insuranceValid: v })
+                    }
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        size: "small",
+                        sx: darkDatePickerStyle,
                       },
                     }}
                   />

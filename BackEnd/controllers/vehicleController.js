@@ -16,8 +16,8 @@ export const createVehicle = async (req, res) => {
     const { 
       plateNumber, modelName, type, chassisNo, engineNo, 
       brand, serialNo, fuelType, yom, licenseValid,
-      emissionValid, pricePerKM,
-      owner // 🎯 FIXED: req.body එකෙන් owner දත්තය මෙතනට බාරගන්නවා
+      emissionValid, pricePerKM, owner,
+      insuranceValid // 🎯 FIXED: req.body එකෙන් එන අලුත් insurance date එක මෙතනට බාරගන්නවා
     } = req.body;
 
     if (!plateNumber) {
@@ -37,7 +37,8 @@ export const createVehicle = async (req, res) => {
       licenseValid,
       emissionValid,
       pricePerKM: Number(pricePerKM) || 0,
-      owner // 🎯 FIXED: Database එකට සේව් වෙන්න මෙතනට owner එකතු කරනවා
+      owner,
+      insuranceValid // 🎯 FIXED: Database එකේ සේව් වෙන්න මෙතනට insuranceValid pass කරනවා
     });
 
     const savedVehicle = await vehicle.save();

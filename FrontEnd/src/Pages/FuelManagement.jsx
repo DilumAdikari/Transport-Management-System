@@ -126,15 +126,28 @@ export default function FuelManagement() {
     setShowModal(true);
   };
 
-  const handleDeleteLog = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this fuel record?")) return;
-    try {
-      await API.delete(`/fuel/${id}`);
-      toast.success("Fuel record removed");
-      fetchInitialData();
-    } catch (err) {
-      toast.error("Failed to delete record");
-    }
+  // 🎯 FIXED: Replaced native window.confirm with a Beautiful Sonner Custom Action Toast
+  const handleDeleteLog = (id) => {
+    toast("Delete Fuel Record?", {
+      description: "Are you sure you want to permanently remove this record?",
+      duration: Infinity, // User එකා action එකක් ගන්නකන් තියෙනවා
+      action: {
+        label: "Delete",
+        onClick: async () => {
+          try {
+            await API.delete(`/fuel/${id}`);
+            toast.success("Fuel record removed successfully");
+            fetchInitialData();
+          } catch (err) {
+            toast.error("Failed to delete record");
+          }
+        },
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => toast.dismiss(),
+      },
+    });
   };
 
   const handleSubmit = async (e) => {

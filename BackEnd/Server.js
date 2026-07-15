@@ -30,7 +30,6 @@ mongoose.connection.once('open', async () => {
   try {
     const collections = await mongoose.connection.db.listCollections({ name: 'drivers' }).toArray();
     if (collections.length > 0) {
-      // Drops the old 'licenseNumber' unique index that was causing crashes
       await mongoose.connection.db.collection('drivers').dropIndex('licenseNumber_1').catch(() => {});
       console.log("✅ Ghost Index Cleanup: licenseNumber index removed (if it existed)");
     }
@@ -80,13 +79,12 @@ app.post("/api/login", async (req, res) => {
           name: "System Administrator", 
           role: "admin", 
           username: "admin",
-          department: "IT DEPARTMENT" // Custom default department assignment for testing
+          department: "IT DEPARTMENT" 
         }
       });
     }
     // ----------------------------------------
 
-    // Standard Database Login Flow (If credentials do not match the override rule)
     const user = await User.findOne({ username });
     if (!user) return res.status(400).json({ message: "Username not found" });
 
@@ -99,7 +97,6 @@ app.post("/api/login", async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // CRITICAL: Returning department so frontend can auto-fill and lock it
     res.json({
       token,
       user: { 
@@ -107,7 +104,7 @@ app.post("/api/login", async (req, res) => {
         name: user.name, 
         role: user.role, 
         username: user.username,
-        department: user.department // Added for auto-selection
+        department: user.department 
       }
     });
   } catch (err) {
@@ -119,7 +116,6 @@ app.post("/api/users", async (req, res) => {
   try {
     const { name, username, password, role, department } = req.body;
     
-    // Check if username exists
     const existing = await User.findOne({ username });
     if (existing) return res.status(400).json({ message: "Username already exists" });
 
@@ -129,7 +125,7 @@ app.post("/api/users", async (req, res) => {
         username, 
         password: hashedPassword, 
         role,
-        department // Added for department allocation
+        department 
     });
     
     await newUser.save();
@@ -180,7 +176,7 @@ app.delete("/api/departments/:id", async (req, res) => {
   }
 });
 
-// --- 3. MASTER DATABASE UPDATE ROUTES (FOR SETTINGS PAGE) ---
+// --- 3. MASTER DATABASE UPDATE ROUTES ---
 
 app.put("/api/vehicles/:id", async (req, res) => {
   try {
@@ -229,14 +225,17 @@ app.put("/api/tours/batch-allocate", async (req, res) => {
   }
 });
 
+// 🎯 FIXED: Tour Completion Auto-Save Integration
 app.put("/api/tours/update-meters", async (req, res) => {
-  const { allocationRef, startMeter, endMeter } = req.body;
+  // Catch the status from frontend, or default to "Completed"
+  const { allocationRef, startMeter, endMeter, status = "Completed" } = req.body;
   try {
     await Tour.updateMany(
       { allocation_ref: allocationRef },
-      { $set: { startMeter, endMeter } }
+      // 🎯 ADDED: status parameter is now being mapped into the $set command
+      { $set: { startMeter, endMeter, status } }
     );
-    res.json({ message: "Meter readings updated" });
+    res.json({ message: "Meter readings updated and Tour marked as Completed" });
   } catch (err) {
     res.status(500).json({ message: "Meter update failed: " + err.message });
   }
@@ -274,7 +273,6 @@ app.get("/api/fuel", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// 🎯 ADDED: UPDATE (EDIT) FUEL RECORD ROUTE
 app.put("/api/fuel/:id", async (req, res) => {
   try {
     const updatedFuel = await Fuel.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -284,7 +282,6 @@ app.put("/api/fuel/:id", async (req, res) => {
   }
 });
 
-// 🎯 ADDED: DELETE FUEL RECORD ROUTE
 app.delete("/api/fuel/:id", async (req, res) => {
   try {
     await Fuel.findByIdAndDelete(req.params.id);
@@ -324,7 +321,6 @@ const checkLicenseExpirations = async () => {
     for (const driver of drivers) {
       if (driver.licenseExpire === alertDate) {
         const msg = `CRITICAL: Driver ${driver.name}'s license is expiring on ${driver.licenseExpire}!`;
-        // Ensure recipient matches the correct admin username
         const existingNote = await Notification.findOne({ recipient: 'admin', message: msg });
 
         if (!existingNote) {

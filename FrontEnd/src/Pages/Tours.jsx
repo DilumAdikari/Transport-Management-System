@@ -209,8 +209,10 @@ export default function Tours({ user, refresh }) {
         allocationRef: meterModal.ref,
         startMeter: Number(meterData.startMeter),
         endMeter: Number(meterData.endMeter),
+        // 🎯 FIXED: Tour එක complete බව Backend එකට දැනුම් දෙයි
+        status: "Completed", 
       });
-      toast.success("Mileage Updated");
+      toast.success("Mileage Updated & Tour Completed!");
       loadData();
       if (refresh) refresh();
       setMeterModal(null);
@@ -234,7 +236,6 @@ export default function Tours({ user, refresh }) {
         className="space-y-6 animate-in fade-in duration-700 p-4"
         style={{ fontFamily: themeFont }}
       >
-        {/* 🎯 FIXED: No shadow, clean flat header with customized sizes */}
         <header className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
             <h2 className="text-2.5xl font-medium text-slate-800 tracking-tight flex items-center gap-3">
@@ -294,7 +295,6 @@ export default function Tours({ user, refresh }) {
           </div>
         </header>
 
-        {/* 🎯 FIXED: Clean Flat Filter Section */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 bg-white p-5 rounded-[2rem] border border-slate-200/60 items-end">
           <div className="flex flex-col gap-1.5">
             <label className="label-style">Tour ID</label>
@@ -328,7 +328,8 @@ export default function Tours({ user, refresh }) {
             <label className="label-style">Status</label>
             <Autocomplete
               size="small"
-              options={["All Status", "Pending", "Allocated"]}
+              /* 🎯 FIXED: Added "Completed" to the filter dropdown */
+              options={["All Status", "Pending", "Allocated", "Completed"]}
               value={statusFilter}
               onChange={(e, val) => setStatusFilter(val || "All Status")}
               renderInput={(params) => <TextField {...params} />}
@@ -360,7 +361,6 @@ export default function Tours({ user, refresh }) {
           </button>
         </div>
 
-        {/* 🎯 FIXED: Flat Data Table Layout (No uppercase, enlarged fonts instead of bold) */}
         <div className="bg-white rounded-[2rem] border border-slate-200/60 overflow-hidden font-medium">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -370,10 +370,11 @@ export default function Tours({ user, refresh }) {
                     {isAdmin && (
                       <button
                         onClick={() => {
+                          /* 🎯 FIXED: Only "Pending" tours can be batch selected now */
                           const selectable = filteredTours.filter(
-                            (t) => t.status !== "Allocated",
+                            (t) => t.status === "Pending",
                           );
-                          if (selectedTours.length === selectable.length)
+                          if (selectedTours.length === selectable.length && selectable.length > 0)
                             setSelectedTours([]);
                           else setSelectedTours(selectable.map((t) => t._id));
                         }}
@@ -404,7 +405,8 @@ export default function Tours({ user, refresh }) {
                       className="px-6 py-5 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {isAdmin && t.status !== "Allocated" ? (
+                      {/* 🎯 FIXED: Prevent checking boxes of Completed tours */}
+                      {isAdmin && t.status === "Pending" ? (
                         <button onClick={() => toggleSelection(t._id)}>
                           {selectedTours.includes(t._id) ? (
                             <CheckSquare
@@ -417,7 +419,7 @@ export default function Tours({ user, refresh }) {
                         </button>
                       ) : (
                         <ShieldCheck
-                          className={`mx-auto ${t.status === "Allocated" ? "text-emerald-500" : "text-slate-200"}`}
+                          className={`mx-auto ${t.status === "Completed" ? "text-blue-500" : t.status === "Allocated" ? "text-emerald-500" : "text-slate-200"}`}
                           size={18}
                         />
                       )}
@@ -444,12 +446,13 @@ export default function Tours({ user, refresh }) {
                                 endMeter: t.endMeter || "",
                               });
                             }}
-                            className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded text-xs font-medium border border-emerald-100 hover:bg-emerald-100 transition-colors flex items-center gap-1"
+                            /* 🎯 FIXED: Completed Reference badge turns blue instead of green */
+                            className={`${t.status === "Completed" ? "bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100" : "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100"} px-3 py-1 rounded text-xs font-medium border transition-colors flex items-center gap-1 w-max`}
                           >
                             <Gauge size={12} /> {t.allocation_ref}
                           </button>
                         ) : (
-                          <span className="bg-slate-50 text-slate-500 px-3 py-1 rounded text-xs font-medium border border-slate-100 flex items-center gap-1">
+                          <span className="bg-slate-50 text-slate-500 px-3 py-1 rounded text-xs font-medium border border-slate-100 flex items-center gap-1 w-max">
                             <Gauge size={12} /> {t.allocation_ref}
                           </span>
                         )
@@ -458,7 +461,7 @@ export default function Tours({ user, refresh }) {
                       )}
                     </td>
                     <td className="px-6 py-5">
-                      <p className="text-base text-slate-700 font-medium">
+                      <p className="text-base text-slate-700 font-medium whitespace-nowrap">
                         {t.fromLocation} → {t.toLocation}
                       </p>
                       <p className="text-xs text-slate-400 italic mt-0.5">
@@ -479,15 +482,16 @@ export default function Tours({ user, refresh }) {
                         <span className="text-slate-200 text-xs">--</span>
                       )}
                     </td>
-                    <td className="px-6 py-5 text-base font-medium text-slate-700 italic">
+                    <td className="px-6 py-5 text-base font-medium text-slate-700 italic whitespace-nowrap">
                       {t.driver || "—"}
                     </td>
-                    <td className="px-6 py-5 text-xs font-medium text-slate-600">
+                    <td className="px-6 py-5 text-xs font-medium text-slate-600 whitespace-nowrap">
                       {t.vehicle || "—"}
                     </td>
                     <td className="px-6 py-5 text-center">
+                      {/* 🎯 FIXED: Dynamic beautiful rendering for "Completed" status in pure blue */}
                       <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${t.status === "Allocated" ? "bg-emerald-50 text-emerald-600" : "bg-yellow-50 text-yellow-700"}`}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${t.status === "Completed" ? "bg-blue-50 text-blue-600" : t.status === "Allocated" ? "bg-emerald-50 text-emerald-600" : "bg-yellow-50 text-yellow-700"}`}
                       >
                         {t.status}
                       </span>
@@ -496,7 +500,8 @@ export default function Tours({ user, refresh }) {
                       className="px-6 py-5 text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {t.status !== "Allocated" && isAdmin ? (
+                      {/* 🎯 FIXED: Replaced Allocate button properly when completed */}
+                      {t.status === "Pending" && isAdmin ? (
                         <button
                           onClick={() => setSelectedTour(t)}
                           className="bg-yellow-400 text-slate-900 px-4 py-1.5 rounded-lg font-medium text-xs shadow-none hover:bg-yellow-500"
@@ -505,7 +510,7 @@ export default function Tours({ user, refresh }) {
                         </button>
                       ) : (
                         <span className="text-slate-300 text-xs italic">
-                          Locked
+                          {t.status === "Completed" ? "Finished" : "Locked"}
                         </span>
                       )}
                     </td>
@@ -542,7 +547,6 @@ export default function Tours({ user, refresh }) {
           </div>
         </div>
 
-        {/* 🎯 FIXED: Clean Tour Details View Model (No shadows, flat headers, enlarged text sizes) */}
         <AnimatePresence>
           {viewTour && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -668,7 +672,6 @@ export default function Tours({ user, refresh }) {
           )}
         </AnimatePresence>
 
-        {/* 🎯 FIXED: Flat Allocation Modal Layout */}
         <AnimatePresence>
           {isAdmin && selectedTour && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -749,7 +752,6 @@ export default function Tours({ user, refresh }) {
           )}
         </AnimatePresence>
 
-        {/* 🎯 FIXED: Flat Mileage Odometer Modal with Enlarged Display Font */}
         <AnimatePresence>
           {isAdmin && meterModal && (
             <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
@@ -848,7 +850,7 @@ export default function Tours({ user, refresh }) {
                     ) : (
                       <Save size={18} />
                     )}{" "}
-                    Save Records
+                    Save Records & Complete Tour
                   </button>
                 </div>
               </motion.div>
@@ -857,7 +859,6 @@ export default function Tours({ user, refresh }) {
         </AnimatePresence>
       </div>
 
-      {/* 🎯 FIXED: Global element input properties forced to flat styling and standard sans-serif */}
       <style
         dangerouslySetInnerHTML={{
           __html: `

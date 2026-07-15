@@ -146,7 +146,6 @@ export default function Tours({ user, refresh }) {
     setCurrentPage(1);
   };
 
-  // 🎯 FIXED: Smart Search Logic with Conditional Status Filtering applied here
   useEffect(() => {
     let data = tours;
 
@@ -315,8 +314,7 @@ export default function Tours({ user, refresh }) {
 
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 bg-white p-5 rounded-[2rem] border border-slate-200/60 items-end">
           <div className="flex flex-col gap-1.5">
-            {/* 🎯 FIXED: Label and Placeholder updated to reflect Smart Search */}
-            <label className="label-style">search</label>
+            <label className="label-style">Smart search</label>
             <div className="relative">
               <Search
                 className="absolute left-3 top-3 text-slate-400"
@@ -326,7 +324,7 @@ export default function Tours({ user, refresh }) {
                 type="text"
                 value={searchId}
                 onChange={(e) => setSearchId(e.target.value)}
-                placeholder="Search"
+                placeholder="ID, location, or name..."
                 className="input-style-compact pl-9"
               />
             </div>

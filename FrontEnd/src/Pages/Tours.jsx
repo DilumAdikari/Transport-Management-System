@@ -146,12 +146,31 @@ export default function Tours({ user, refresh }) {
     setCurrentPage(1);
   };
 
+  // 🎯 FIXED: Smart Search Logic with Conditional Status Filtering applied here
   useEffect(() => {
     let data = tours;
-    if (searchId)
-      data = data.filter((t) =>
-        t.tourId.toLowerCase().includes(searchId.toLowerCase()),
-      );
+
+    if (searchId) {
+      const query = searchId.toLowerCase();
+      
+      data = data.filter((t) => {
+        const isIdMatch = t.tourId && t.tourId.toLowerCase().includes(query);
+        const isOtherMatch = 
+          (t.toLocation && t.toLocation.toLowerCase().includes(query)) ||
+          (t.userName && t.userName.toLowerCase().includes(query));
+
+        if (isIdMatch) {
+          return true; 
+        }
+        
+        if (isOtherMatch) {
+          return t.status === "Pending" || t.status === "Allocated";
+        }
+
+        return false;
+      });
+    }
+
     if (deptFilter !== "All Departments")
       data = data.filter((t) => t.department === deptFilter);
     if (statusFilter !== "All Status")
@@ -209,7 +228,6 @@ export default function Tours({ user, refresh }) {
         allocationRef: meterModal.ref,
         startMeter: Number(meterData.startMeter),
         endMeter: Number(meterData.endMeter),
-        // 🎯 FIXED: Tour එක complete බව Backend එකට දැනුම් දෙයි
         status: "Completed", 
       });
       toast.success("Mileage Updated & Tour Completed!");
@@ -297,7 +315,8 @@ export default function Tours({ user, refresh }) {
 
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 bg-white p-5 rounded-[2rem] border border-slate-200/60 items-end">
           <div className="flex flex-col gap-1.5">
-            <label className="label-style">Tour ID</label>
+            {/* 🎯 FIXED: Label and Placeholder updated to reflect Smart Search */}
+            <label className="label-style">search</label>
             <div className="relative">
               <Search
                 className="absolute left-3 top-3 text-slate-400"
@@ -307,7 +326,7 @@ export default function Tours({ user, refresh }) {
                 type="text"
                 value={searchId}
                 onChange={(e) => setSearchId(e.target.value)}
-                placeholder="Search..."
+                placeholder="Search"
                 className="input-style-compact pl-9"
               />
             </div>
@@ -328,7 +347,6 @@ export default function Tours({ user, refresh }) {
             <label className="label-style">Status</label>
             <Autocomplete
               size="small"
-              /* 🎯 FIXED: Added "Completed" to the filter dropdown */
               options={["All Status", "Pending", "Allocated", "Completed"]}
               value={statusFilter}
               onChange={(e, val) => setStatusFilter(val || "All Status")}
@@ -370,7 +388,6 @@ export default function Tours({ user, refresh }) {
                     {isAdmin && (
                       <button
                         onClick={() => {
-                          /* 🎯 FIXED: Only "Pending" tours can be batch selected now */
                           const selectable = filteredTours.filter(
                             (t) => t.status === "Pending",
                           );
@@ -405,7 +422,6 @@ export default function Tours({ user, refresh }) {
                       className="px-6 py-5 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* 🎯 FIXED: Prevent checking boxes of Completed tours */}
                       {isAdmin && t.status === "Pending" ? (
                         <button onClick={() => toggleSelection(t._id)}>
                           {selectedTours.includes(t._id) ? (
@@ -446,7 +462,6 @@ export default function Tours({ user, refresh }) {
                                 endMeter: t.endMeter || "",
                               });
                             }}
-                            /* 🎯 FIXED: Completed Reference badge turns blue instead of green */
                             className={`${t.status === "Completed" ? "bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100" : "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100"} px-3 py-1 rounded text-xs font-medium border transition-colors flex items-center gap-1 w-max`}
                           >
                             <Gauge size={12} /> {t.allocation_ref}
@@ -489,7 +504,6 @@ export default function Tours({ user, refresh }) {
                       {t.vehicle || "—"}
                     </td>
                     <td className="px-6 py-5 text-center">
-                      {/* 🎯 FIXED: Dynamic beautiful rendering for "Completed" status in pure blue */}
                       <span
                         className={`px-2.5 py-1 rounded-full text-xs font-medium ${t.status === "Completed" ? "bg-blue-50 text-blue-600" : t.status === "Allocated" ? "bg-emerald-50 text-emerald-600" : "bg-yellow-50 text-yellow-700"}`}
                       >
@@ -500,7 +514,6 @@ export default function Tours({ user, refresh }) {
                       className="px-6 py-5 text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* 🎯 FIXED: Replaced Allocate button properly when completed */}
                       {t.status === "Pending" && isAdmin ? (
                         <button
                           onClick={() => setSelectedTour(t)}

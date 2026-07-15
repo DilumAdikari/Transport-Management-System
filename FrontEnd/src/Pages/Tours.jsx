@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, } from "react";
 import API from "../api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -107,6 +107,8 @@ export default function Tours({ user, refresh }) {
   });
   const [meterData, setMeterData] = useState({ startMeter: "", endMeter: "" });
   const [actionLoading, setActionLoading] = useState(false);
+  const [existingBatches, setExistingBatches] = useState([]);
+  const [selectedExistingBatch, setSelectedExistingBatch] = useState(null);
 
   const isAdmin = user?.role === "admin";
   const themeFont = "sans-serif";
@@ -136,6 +138,18 @@ export default function Tours({ user, refresh }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Get unique Batch References from allocated tours
+  useEffect(() => {
+    const batches = [
+      ...new Set(
+        tours
+          .filter((t) => t.status === "Allocated" && t.allocation_ref)
+          .map((t) => t.allocation_ref),
+      ),
+    ];
+    setExistingBatches(batches);
+  }, [tours]);
 
   const handleReset = () => {
     setSearchId("");
@@ -199,19 +213,24 @@ export default function Tours({ user, refresh }) {
   const handleBatchAllocate = async () => {
     if (!isAdmin) return toast.error("Unauthorized");
     setActionLoading(true);
-    const batchRef = `TRIP-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const finalBatchRef =
+      selectedExistingBatch ||
+      `TRIP-${Math.floor(100000 + Math.random() * 900000)}`;
+
     try {
       await API.put("/tours/batch-allocate", {
         tourIds: selectedTours.length > 0 ? selectedTours : [selectedTour._id],
         driver: allocationData.driver,
         vehicle: allocationData.vehicle,
-        allocationRef: batchRef,
+        allocationRef: finalBatchRef,
       });
       toast.success("Allocation Successful");
       loadData();
       if (refresh) refresh();
       setSelectedTour(null);
       setSelectedTours([]);
+      setSelectedExistingBatch(null);
     } catch (error) {
       toast.error("Failed");
     } finally {
@@ -712,8 +731,41 @@ export default function Tours({ user, refresh }) {
                 </div>
                 <div className="space-y-5">
                   <div className="flex flex-col gap-2">
+                    <label className="label-style">
+                      Use Existing Batch (Optional)
+                    </label>
+                    <Autocomplete
+                      size="small"
+                      options={existingBatches}
+                      value={selectedExistingBatch}
+                      onChange={(e, val) => {
+                        setSelectedExistingBatch(val);
+                        if (val) {
+                          const existingTour = tours.find(
+                            (t) => t.allocation_ref === val,
+                          );
+                          if (existingTour) {
+                            setAllocationData({
+                              driver: existingTour.driver,
+                              vehicle: existingTour.vehicle,
+                            });
+                          }
+                        } else {
+                          setAllocationData({ driver: "", vehicle: "" });
+                        }
+                      }}
+                      renderInput={(p) => (
+                        <TextField
+                          {...p}
+                          placeholder="Select existing batch..."
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
                     <label className="label-style">Driver Representative</label>
                     <Autocomplete
+                      disabled={!!selectedExistingBatch}
                       size="small"
                       options={drivers.map((d) => d.name)}
                       value={allocationData.driver}
@@ -731,6 +783,7 @@ export default function Tours({ user, refresh }) {
                   <div className="flex flex-col gap-2">
                     <label className="label-style">Vehicle Fleet Unit</label>
                     <Autocomplete
+                      disabled={!!selectedExistingBatch}
                       size="small"
                       options={vehicles.map((v) => v.plateNumber)}
                       value={allocationData.vehicle}

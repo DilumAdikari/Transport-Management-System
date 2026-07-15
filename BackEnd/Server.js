@@ -233,14 +233,32 @@ app.put("/api/tours/batch-allocate", async (req, res) => {
 });
 
 app.put("/api/tours/update-meters", async (req, res) => {
-  const { allocationRef, startMeter, endMeter } = req.body;
+  // 🎯 Debugging සඳහා ලොග් එකක් දාමු
+  console.log("📥 Received Update Request:", req.body); 
+  
+  const { allocationRef, startMeter, endMeter, status } = req.body;
+  
   try {
-    await Tour.updateMany(
+    // 🎯 Update වෙන රෙකෝඩ්ස් ප්‍රමාණය බලාගන්න result එක අල්ලගමු
+    const result = await Tour.updateMany(
       { allocation_ref: allocationRef },
-      { $set: { startMeter, endMeter } }
+      { $set: { 
+          startMeter: Number(startMeter), 
+          endMeter: Number(endMeter), 
+          status: status || "Completed" 
+        } 
+      }
     );
-    res.json({ message: "Meter readings updated" });
+
+    console.log("✅ Update Result:", result); // මේකෙන් පේනවා Tour කීයක් Update වුණාද කියලා
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "No tours found with this Batch Reference" });
+    }
+
+    res.json({ message: "Meter readings and status updated successfully", result });
   } catch (err) {
+    console.error("❌ Update Error:", err);
     res.status(500).json({ message: "Meter update failed: " + err.message });
   }
 });

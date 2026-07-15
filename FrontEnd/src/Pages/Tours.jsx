@@ -383,6 +383,7 @@ export default function Tours({ user, refresh }) {
                     )}
                   </th>
                   <th className="px-6 py-5">Tour ID</th>
+                  <th className="px-6 py-5">Date</th>
                   <th className="px-6 py-5">Batch Reference</th>
                   <th className="px-6 py-5">Route Path</th>
                   <th className="px-6 py-5 text-indigo-600">Distance</th>
@@ -425,6 +426,9 @@ export default function Tours({ user, refresh }) {
                       <span className="bg-slate-900 text-yellow-400 text-xs font-medium px-3.5 py-1.5 rounded-lg tracking-wider">
                         {t.tourId}
                       </span>
+                    </td>
+                    <td className="px-6 py-5 text-sm text-slate-600 font-medium">
+                      {t.date}
                     </td>
                     <td
                       className="px-6 py-5"
